@@ -1,15 +1,20 @@
-# Use a lightweight Java 21 runtime image
-FROM eclipse-temurin:21-jre-alpine
+# Build stage
+FROM maven:3.9-eclipse-temurin-17 AS build
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy the compiled JAR file from the Maven target directory into the container
-# (We assume 'mvn clean verify' has already been executed before running docker build)
-COPY target/*.jar app.jar
+COPY pom.xml .
+COPY src ./src
 
-# Expose the standard Spring Boot port
+RUN mvn clean package -DskipTests
+
+# Runtime stage
+FROM eclipse-temurin:17-jre
+
+WORKDIR /app
+
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
 
-# Define the command to start the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
